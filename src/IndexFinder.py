@@ -7,83 +7,14 @@ import threading
 import os.path
 import xlsxwriter
 import datetime
-import TracerUtils
+from TracerUtils import legit_bs
 from tkinter import *
-from tkFileDialog import askopenfilename, askdirectory
-from time import sleep
 
 
 AMAZON_SEARCH_URL = "https://www.amazon.com/s/keywords="
 AMZ_SEARCH_BY_PAGE_URL = 'https://www.amazon.com/s/page={0}&keywords={1}&ie=UTF8'
 DEFAULT_ASIN = "B078YBWH54"
 lock = threading.Lock()
-
-
-class Application:
-
-    def __init__(self):
-        self.root = Tk()
-        self.root.title("IndexFinder v0.01")
-        self.root.geometry("500x200")
-        self.button_frame = Frame(self.root, height=30, width=50)
-
-        self.choose_file_btn = Button(self.button_frame, text="Choose File...")
-        self.choose_file_btn.bind("<Button-1>", self.get_xls_file_path)
-        self.start_btn = Button(self.button_frame, text="Start")
-        self.start_btn.bind("<Button-1>", self.start_find_indexation)
-        self.generate_csv_btn = Button(self.button_frame, text="Generate xlsx")
-        self.generate_csv_btn.bind("<Button-1>", self.generate_csv)
-
-        self.file_name_entry = Entry(self.root, justify='center')
-        self.file_name_entry = Entry(self.root, width=60)
-        self.file_name_entry.bind("<Button-1>", self.get_xls_file_path)
-
-        self.button_frame.pack(side=BOTTOM)
-        self.file_name_entry.pack(side=BOTTOM)
-        self.choose_file_btn.pack(side=LEFT)
-        self.start_btn.pack(side=RIGHT)
-
-        self.results = []
-        self.status_label = Label(self.root, text="Waiting")
-        self.asin_entry = Entry(self.root, justify='center')
-        self.asin_entry.insert(END, "B078YBWH54")
-        self.status_label.pack()
-        self.asin_entry.pack(side=BOTTOM)
-
-        self.results_listener = threading.Thread(target=self.listen_to_results)
-
-    def get_xls_file_path(self, event):
-        file_path = askopenfilename(initialdir=os.environ['USERPROFILE'])
-        self.file_name_entry.delete(0, END)
-        self.file_name_entry.insert(0, file_path)
-
-    def start_find_indexation(self, event):
-        print 'starting',
-        if threading.active_count() < 2 and self.file_name_entry.get():
-            threading.Thread(target=find_indexation_for_terms, args=(self.results, self.status_label, None, DEFAULT_ASIN, self.file_name_entry.get())).start()
-            self.results_listener.start()
-        else:
-            top_level = Toplevel(self.root)
-            label_warning = Label(top_level, text="A search is already in progress!")
-            label_warning.pack()
-
-    def start(self):
-
-        self.root.mainloop()
-
-    def listen_to_results(self):
-        while True:
-            if self.results:
-                with lock:
-                    self.generate_csv_btn.pack(side=RIGHT)
-                    print 'Generate CSV button enabled'
-                    break
-
-    def generate_csv(self, event):
-        asin = self.asin_entry.get()
-        work_dir = askdirectory(initialdir=os.environ['USERPROFILE'])
-        path = os.path.join(work_dir, 'indexFinder', asin)
-        threading.Thread(target=create_csv, args=(self.results, path)).start()
 
 
 def rnd_user_agent():
@@ -126,7 +57,7 @@ def build_url(search_term, asin=DEFAULT_ASIN, page=-1):
 def get_page_bs_element(search_term, asin=DEFAULT_ASIN, page=-1):
 
     url = build_url(search_term, asin, page)
-    return TracerUtils.legit_bs(url)
+    return legit_bs(url)
 
 
 def get_all_products(bs_object):
@@ -150,8 +81,7 @@ def product_found_in_page(products, asin=DEFAULT_ASIN):
 
 def get_page_of_product(search_term, label_to_update=None, asin=DEFAULT_ASIN):
 
-    for i in xrange(20, 0, -1):
-        sleep(random.uniform(0, 1))
+    for i in xrange(1, 21):
         print 'page', i, '/', search_term
         if label_to_update:
             label_to_update['text'] = 'page ' + str(i) + ' / ' + search_term
@@ -161,7 +91,7 @@ def get_page_of_product(search_term, label_to_update=None, asin=DEFAULT_ASIN):
         if index:
             print asin, 'found in page', i, 'index ', index
             if label_to_update:
-                label_to_update['text'] = asin + ' found in page ' + str(i) + ' index ' + str(index) + '(%s)' % search_term
+                label_to_update['text'] = asin + ' found in page %s (realPage %s) index %s (%s) ' % (i, index, int(index/16), search_term)
             with lock:
                 return {'term': search_term, 'page': i, 'index': index}
     with lock:
@@ -240,16 +170,19 @@ def create_csv(results, path):
     sheet.write(0, 1, "Index")
     sheet.write(0, 2, "Page")
     sheet.write(0, 3, "RealPage")
+    sheet.write(0, 4, "Url")
 
     r = 1
 
     print results
 
     for result in results:
+        rp = int(result['index']/16)
         sheet.write(r, 0, result['term'])
         sheet.write(r, 1, result['index'])
         sheet.write(r, 2, result['page'])
-        sheet.write(r, 3, int(result['page']/16))
+        sheet.write(r, 3, rp)
+        sheet.write(r, 4, AMZ_SEARCH_BY_PAGE_URL.format(rp, result['term']))
         r += 1
 
     excel.close()
@@ -265,13 +198,3 @@ def split_five(arr):
     result[-1].append(arr[5*interval:])
 
     return result
-
-
-if __name__ == "__main__":
-
-    # dic = find_indexation_for_terms(["construction magnets"], DEFAULT_ASIN)
-    # print dic
-
-    app = Application()
-
-    app.start()

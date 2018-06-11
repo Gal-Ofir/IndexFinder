@@ -18,8 +18,6 @@ import sys
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# TODO (1) Items that don't have any price (unavailable)
-
 
 def get_proxies():
     """Usage:
@@ -418,7 +416,7 @@ def main(keywords):
     try:
         create_csv(keywords, page)
     except IOError:
-         print 'Failed to create excel file for %s' % keywords
+        print 'Failed to create excel file for %s' % keywords
 
 
 def force_make_file_path(keywords, count=0):
@@ -493,8 +491,6 @@ if __name__ == "__main__":
                 time.sleep(2)
 
         except Exception, e:
-            print 'Unknown error occured: %s\nPlease tell Gal..' % e.message
+            print 'Unknown error occurred: %s\nPlease tell Gal..' % e.message
             time.sleep(2)
             sys.exit(1)
-
-
