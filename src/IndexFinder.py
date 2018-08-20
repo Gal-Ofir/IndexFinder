@@ -9,11 +9,12 @@ import xlsxwriter
 import datetime
 from TracerUtils import legit_bs
 from tkinter import *
+from tkFileDialog import askdirectory
 
 
 AMAZON_SEARCH_URL = "https://www.amazon.com/s/keywords="
 AMZ_SEARCH_BY_PAGE_URL = 'https://www.amazon.com/s/page={0}&keywords={1}&ie=UTF8'
-DEFAULT_ASIN = "B078YBWH54"
+DEFAULT_ASIN = "B07F64WR22"
 lock = threading.Lock()
 
 
@@ -177,12 +178,13 @@ def create_csv(results, path):
     print results
 
     for result in results:
-        rp = int(result['index']/16)
-        sheet.write(r, 0, result['term'])
+        rp = max(1, int(result['index']/16))
+        term = ''.join([i for i in result['term'] if ord(i) < 128])
+        sheet.write(r, 0, term)
         sheet.write(r, 1, result['index'])
         sheet.write(r, 2, result['page'])
         sheet.write(r, 3, rp)
-        sheet.write(r, 4, AMZ_SEARCH_BY_PAGE_URL.format(rp, result['term']))
+        sheet.write(r, 4, AMZ_SEARCH_BY_PAGE_URL.format(rp, term))
         r += 1
 
     excel.close()
@@ -198,3 +200,9 @@ def split_five(arr):
     result[-1].append(arr[5*interval:])
 
     return result
+
+
+if __name__ == '__main__':
+
+    x = []
+    create_csv(x, os.path.join(askdirectory(initialdir=os.environ['USERPROFILE']), 'indexFinder', DEFAULT_ASIN))

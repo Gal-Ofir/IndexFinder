@@ -138,6 +138,8 @@ def legit_bs(url):
             return legit_bs(url)
     except AttributeError:
         return bs('<Title> Im a mistake! </Title>', 'html.parser')
+    except RuntimeError:
+        return bs('<Title> Im a mistake! </Title>', 'html.parser')
     return bs
 
 
