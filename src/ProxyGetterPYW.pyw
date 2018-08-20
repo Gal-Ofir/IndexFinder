@@ -9,6 +9,9 @@ lock = threading.Lock()
 
 app_data_path = os.environ["APPDATA"] + '\\Proxy Getter\\'
 
+if not os.path.exists(app_data_path):
+    os.mkdir(app_data_path)
+
 if __name__ == '__main__':
     with lock:
         with(open(app_data_path + 'proxy_list.txt', 'a')) as proxy_list:
@@ -17,3 +20,5 @@ if __name__ == '__main__':
 
                 proxy_list.write(str(proxy))
                 proxy_list.write('\n')
+
+            proxy_list.write()
